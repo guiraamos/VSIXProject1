@@ -4,6 +4,7 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using CodeAnalysisApp;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -126,7 +127,15 @@ namespace VSIXProject1
             string projectPath = selectedProject.FullName;
 
 
-            var r = GetAllProjectFiles(selectedProject.ProjectItems, ".cs");
+            var classesEncontradas = GetAllProjectFiles(selectedProject.ProjectItems, ".cs");
+
+            foreach (string classe in classesEncontradas)
+            {
+                var c = Arquivo.LerClasse(classe);
+
+                AnalisadorAST.Analisar(c);
+            }
+
 
             // Show a message box to prove we were here
             VsShellUtilities.ShowMessageBox(
@@ -155,8 +164,8 @@ namespace VSIXProject1
                 {
                     string fileName = projectItem.Name;
 
-                    if (Path.GetFullPath(fileName).ToLower() == extension)
-                        returnValue.Add(fileName);
+                    if (Path.GetExtension(fileName).ToLower() == extension)
+                        returnValue.Add(projectItem.Properties.Item("FullPath").Value.ToString());
                 }
             }
 
