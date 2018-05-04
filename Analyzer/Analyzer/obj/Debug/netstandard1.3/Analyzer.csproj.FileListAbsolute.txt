@@ -11,3 +11,16 @@ C:\Users\Ramos\source\repos\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard
 C:\Users\Ramos\source\repos\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.AssemblyInfo.cs
 C:\Users\Ramos\source\repos\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.dll
 C:\Users\Ramos\source\repos\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.pdb
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\tools\install.ps1
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\tools\uninstall.ps1
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.deps.json
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.dll
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.pdb
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.csprojResolveAssemblyReference.cache
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.Resources.resources
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.csproj.GenerateResource.cache
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.csproj.CoreCompileInputs.cache
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.AssemblyInfoInputs.cache
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.AssemblyInfo.cs
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.dll
+C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard1.3\Analyzer.pdb
