@@ -137,9 +137,14 @@ namespace VSIXProject1
 
             foreach (string classe in classesEncontradas)
             {
-                var newClasse = AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
+                AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
+
+                var p = new Microsoft.Build.Evaluation.Project(@"C:\projects\BabDb\test\test.csproj");
+                p.AddItem("Folder", @"C:\projects\BabDb\test\test2");
+                p.AddItem("Compile", @"C:\projects\BabDb\test\test2\Class1.cs");
+                p.Save();
             }
-            
+
 
 
             // Show a message box to prove we were here
