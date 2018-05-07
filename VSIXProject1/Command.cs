@@ -10,6 +10,10 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
+using Microsoft.TeamFoundation.Client;
+using Microsoft.TeamFoundation.VersionControl.Client;
+using Microsoft.TeamFoundation.VersionControl.Common;
+
 namespace VSIXProject1
 {
     /// <summary>
@@ -126,29 +130,40 @@ namespace VSIXProject1
 
             string projectPath = selectedProject.FullName;
 
-
             var classesEncontradas = GetAllProjectFiles(selectedProject.ProjectItems, ".cs");
+
+
+            ProjectItem a = AAAAAAAA(selectedProject.ProjectItems);
 
             foreach (string classe in classesEncontradas)
             {
-                var c = Arquivo.LerClasse(classe);
-
-                AnalisadorAST.Analisar(c);
+                var newClasse = AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
             }
+            
 
 
             // Show a message box to prove we were here
-            VsShellUtilities.ShowMessageBox(
-                this.ServiceProvider,
-                message,
-                projectPath,
-                OLEMSGICON.OLEMSGICON_INFO,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-
+            //VsShellUtilities.ShowMessageBox(
+            //    this.ServiceProvider,
+            //    message,
+            //    projectPath,
+            //    OLEMSGICON.OLEMSGICON_INFO,
+            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
+            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
         }
 
+        private ProjectItem AAAAAAAA(ProjectItems projectItems)
+        {
+            foreach (ProjectItem projectItem in projectItems)
+            {
+                if (projectItem.GetType().Name == "OAFolderItem" && projectItem.Name == "Service")
+                {
+                    return projectItem;
+                }
+            }
 
+            return projectItems.AddFolder("Service");
+        }
 
         public static List<string> GetAllProjectFiles(ProjectItems projectItems, string extension)
         {

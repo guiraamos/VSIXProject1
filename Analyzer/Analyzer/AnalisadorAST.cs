@@ -6,6 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Analyzer;
+using System.IO;
+using System.Text;
 
 namespace CodeAnalysisApp
 {
@@ -14,28 +17,42 @@ namespace CodeAnalysisApp
         private static readonly string NameSpacetextService = "Service";
         private static readonly string[] DependenciasService = { "System.Collections.Generic", "MicroServiceNet", "RestSharp" };
 
-        public static void Analisar(string classeText)
+        public static string Analisar(string classeText)
         {
             SyntaxTree tree = CSharpSyntaxTree.ParseText(classeText);
             var root = (CompilationUnitSyntax)tree.GetRoot();
 
-            var helloWorldDeclaration = (NamespaceDeclarationSyntax)root.Members[0];
-            var classe = (ClassDeclarationSyntax)helloWorldDeclaration.Members[0];
+            var namespaceDeclaration = (NamespaceDeclarationSyntax)root.Members[0];
+            var classe = (ClassDeclarationSyntax)namespaceDeclaration.Members[0];
 
-            foreach (MethodDeclarationSyntax method in classe.Members)
+            var pretendingClass = new PretendingClass() { Name = classe.Identifier.ValueText };
+
+            foreach (var member in classe.Members)
             {
-                foreach (var item in method.ChildNodes())
+                if (member is MethodDeclarationSyntax)
                 {
-                    if (item is BlockSyntax)
+                    var method = (MethodDeclarationSyntax)member;
+                    var pretendingMethod = new Method() { Name = method.Identifier.ValueText };
+
+                    foreach (var item in method.ChildNodes())
                     {
-                        NavegaEntreNodosDoMetodo(item.ChildNodes());
+                        if (item is BlockSyntax)
+                        {
+                            NavegaEntreNodosDoMetodo(item.ChildNodes(), pretendingClass, pretendingMethod);
+                        }
                     }
                 }
             }
 
+            if (pretendingClass.Methods.Count > 0)
+            {
+                return CreateClassService(pretendingClass);
+            }
+
+            return null;
         }
 
-        private static void NavegaEntreNodosDoMetodo(IEnumerable<SyntaxNode> nodes)
+        private static void NavegaEntreNodosDoMetodo(IEnumerable<SyntaxNode> nodes, PretendingClass pretendingClass, Method pretendingMethod)
         {
             foreach (var nodo in nodes)
             {
@@ -44,32 +61,66 @@ namespace CodeAnalysisApp
                     IdentifierNameSyntax id = (IdentifierNameSyntax)nodo.ChildNodes().FirstOrDefault(n => n is IdentifierNameSyntax);
                     VariableDeclaratorSyntax declaracao = (VariableDeclaratorSyntax)nodo.ChildNodes().FirstOrDefault(n => n is VariableDeclaratorSyntax);
 
-                    if (declaracao.Initializer.Value.ToString().Contains("PostAsync"))
+                    List<string> tipoRequisicaoList = new List<string>() { "GetAsync", "PostAsync" };
+
+                    foreach (var tipoRequisicao in tipoRequisicaoList)
                     {
-                        MontaNovaClassePost(nodo);
+                        if (declaracao.Initializer.Value.ToString().Contains(tipoRequisicao))
+                        {
+                            if (tipoRequisicao.Equals("GetAsync"))
+                                pretendingMethod.RequestType = "GET";
+
+                            if (tipoRequisicao.Equals("PostAsync"))
+                                pretendingMethod.RequestType = "POST";
+
+                            pretendingClass.Methods.Add(pretendingMethod);
+                            TrataRotaMethodo(declaracao, pretendingClass, pretendingMethod);
+                        }
                     }
 
-                    if (declaracao.Initializer.Value.ToString().Contains("GetAsync"))
-                    {
-                        MontaNovaClasseGet(nodo);
-                    }
                 }
-                NavegaEntreNodosDoMetodo(nodo.ChildNodes());
+
+                NavegaEntreNodosDoMetodo(nodo.ChildNodes(), pretendingClass, pretendingMethod);
             }
         }
 
-        private static void MontaNovaClasseGet(SyntaxNode nodo)
+        private static void TrataRotaMethodo(SyntaxNode node, PretendingClass pretendingClass, Method pretendingMethod)
         {
-            throw new System.NotImplementedException();
+            foreach (var item in node.ChildNodes())
+            {
+                if (item is ArgumentListSyntax)
+                {
+                    foreach (ArgumentSyntax argument in item.ChildNodes())
+                    {
+                        var value = argument.Expression.ToString();
+                        if(value.Contains("http"))
+                        {
+                            var rota = value.Split('/');
+                            var NameHostMicroService = "";
+                            if (rota[rota.Length-1] == "\"")
+                            {
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length-2];
+                                NameHostMicroService = value.Replace(rota[rota.Length - 2]+ rota[rota.Length - 1], "");
+                            }
+                            else
+                            {
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length-1];
+                                NameHostMicroService = value.Replace(rota[rota.Length - 1], "");
+                            }
+
+                            pretendingClass.NameHostMicroService = NameHostMicroService.Replace("\"", "");
+                        }
+                    }
+                }
+                else
+                {
+                    TrataRotaMethodo(item, pretendingClass, pretendingMethod);
+                }
+            }
         }
 
-        private static void MontaNovaClassePost(SyntaxNode nodo)
-        {
-            throw new System.NotImplementedException();
-        }
 
-
-        static void CreateClassService(string nameClass, string hostMicroServico, string nameOfmethod)
+        static string CreateClassService(PretendingClass pretendingClass)
         {
             //Cria um namespace da classe (namespace CodeGenerationSample)
             var @namespace = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(NameSpacetextService)).NormalizeWhitespace();
@@ -81,7 +132,7 @@ namespace CodeAnalysisApp
             }
 
             //  Cria a classe
-            var classDeclaration = SyntaxFactory.ClassDeclaration(nameClass);
+            var classDeclaration = SyntaxFactory.ClassDeclaration(pretendingClass.Name);
 
             // Torna a classe pública
             classDeclaration = classDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
@@ -91,36 +142,37 @@ namespace CodeAnalysisApp
 
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
-            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList(hostMicroServico));
+            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
             var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute));
             classDeclaration = classDeclaration.AddAttributeLists(attributeList);
 
 
-
             // Create a method
-            var methodDeclaration = SyntaxFactory
-                .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), nameOfmethod)
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.StaticKeyword))
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
-                        .WithType(SyntaxFactory.ParseTypeName(typeof(List<KeyValuePair<object, object>>).FullName))
-                        .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))));
+            foreach (var method in pretendingClass.Methods)
+            {
+                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
+                var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
+
+                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);",pretendingClass.Name, method.Name, method.RequestType));
+
+                var methodDeclaration = SyntaxFactory
+
+                    .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), method.Name)
+                    .AddAttributeLists(attributeListMethod)
+                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.StaticKeyword))
+                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                    .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
+                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<object, object>>"))
+                            .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
+                    .WithBody(SyntaxFactory.Block(bodyMethod));
 
 
-            // Add the field, the property and method to the class.
-            classDeclaration = classDeclaration.AddMembers(methodDeclaration);
+                // Add the field, the property and method to the class.
+                classDeclaration = classDeclaration.AddMembers(methodDeclaration);
+            }
 
             // Add the class to the namespace.
             @namespace = @namespace.AddMembers(classDeclaration);
-
-
-
-
-
-
-
-
-
 
             // Normalize and get code as string.
             var code = @namespace
@@ -128,7 +180,10 @@ namespace CodeAnalysisApp
                 .ToFullString();
 
             // Output new code to the console.
-            Console.WriteLine(code);
+            return code;
         }
+
+
+        
     }
 }
