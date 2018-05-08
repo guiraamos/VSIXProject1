@@ -9,10 +9,9 @@ using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-
-using Microsoft.TeamFoundation.Client;
-using Microsoft.TeamFoundation.VersionControl.Client;
-using Microsoft.TeamFoundation.VersionControl.Common;
+using Microsoft.Build.Evaluation;
+using System.Text;
+using Analyzer;
 
 namespace VSIXProject1
 {
@@ -126,26 +125,30 @@ namespace VSIXProject1
                                                   out selectedObject));
             }
 
-            Project selectedProject = selectedObject as Project;
+            EnvDTE.Project selectedProject = selectedObject as EnvDTE.Project;
 
             string projectPath = selectedProject.FullName;
 
             var classesEncontradas = GetAllProjectFiles(selectedProject.ProjectItems, ".cs");
 
+            var projectEvalution = new Microsoft.Build.Evaluation.Project(projectPath);
 
-            ProjectItem a = AAAAAAAA(selectedProject.ProjectItems);
-
-            foreach (string classe in classesEncontradas)
+            if (!Directory.Exists(Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service")))
             {
-                AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
-
-                var p = new Microsoft.Build.Evaluation.Project(@"C:\projects\BabDb\test\test.csproj");
-                p.AddItem("Folder", @"C:\projects\BabDb\test\test2");
-                p.AddItem("Compile", @"C:\projects\BabDb\test\test2\Class1.cs");
-                p.Save();
+                projectEvalution.AddItem("Folder", 
+                    Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service"));
+                projectEvalution.Save();
             }
 
 
+            foreach (string classe in classesEncontradas)
+            {
+                var newClass = AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
+
+                CriarArquivo(newClass, selectedProject);
+            }
+
+            projectEvalution.Save();
 
             // Show a message box to prove we were here
             //VsShellUtilities.ShowMessageBox(
@@ -157,24 +160,34 @@ namespace VSIXProject1
             //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
         }
 
-        private ProjectItem AAAAAAAA(ProjectItems projectItems)
+        private void CriarArquivo(PretendingClass newClass, EnvDTE.Project selectedProject)
         {
-            foreach (ProjectItem projectItem in projectItems)
+            string fileName = Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service", newClass.Name + ".cs");
+
+            try
             {
-                if (projectItem.GetType().Name == "OAFolderItem" && projectItem.Name == "Service")
+                if (File.Exists(fileName))
                 {
-                    return projectItem;
+                    File.Delete(fileName);
+                }
+
+                using (FileStream fs = File.Create(fileName))
+                {
+                    Byte[] title = new UTF8Encoding(true).GetBytes(newClass.NewClass);
+                    fs.Write(title, 0, title.Length);
                 }
             }
-
-            return projectItems.AddFolder("Service");
+            catch (Exception Ex)
+            {
+                Console.WriteLine(Ex.ToString());
+            }
         }
 
         public static List<string> GetAllProjectFiles(ProjectItems projectItems, string extension)
         {
             List<string> returnValue = new List<string>();
 
-            foreach (ProjectItem projectItem in projectItems)
+            foreach (EnvDTE.ProjectItem projectItem in projectItems)
             {
                 if (projectItem.GetType().Name == "OAFolderItem")
                 {

@@ -17,7 +17,7 @@ namespace CodeAnalysisApp
         private static readonly string NameSpacetextService = "Service";
         private static readonly string[] DependenciasService = { "System.Collections.Generic", "MicroServiceNet", "RestSharp" };
 
-        public static string Analisar(string classeText)
+        public static PretendingClass Analisar(string classeText)
         {
             SyntaxTree tree = CSharpSyntaxTree.ParseText(classeText);
             var root = (CompilationUnitSyntax)tree.GetRoot();
@@ -46,7 +46,8 @@ namespace CodeAnalysisApp
 
             if (pretendingClass.Methods.Count > 0)
             {
-                return CreateClassService(pretendingClass);
+                pretendingClass.NewClass = CreateClassService(pretendingClass);
+                return pretendingClass;
             }
 
             return null;

@@ -12,6 +12,6 @@ namespace Analyzer
         public string Name { get; set; }
         public List<Method> Methods { get; set; }
         public string NameHostMicroService { get; set; }
-        
+        public string NewClass { get; set; }
     }
 }
