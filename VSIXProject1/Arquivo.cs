@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using Analyzer;
+using Microsoft.TeamFoundation.Client;
+using Microsoft.TeamFoundation.VersionControl.Client;
 
 namespace VSIXProject1
 {
@@ -11,35 +14,49 @@ namespace VSIXProject1
             return File.ReadAllText(path);
         }
 
-        private void CriaArquivo(string text, string path)
+        public static void CriarArquivo(PretendingClass newClass, EnvDTE.Project selectedProject, Microsoft.Build.Evaluation.Project projectEvalution)
         {
+            string filePath = Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service", newClass.Name + "Service" + ".cs");
+
             try
             {
-                if (File.Exists(path))
+                if (File.Exists(filePath))
                 {
-                    File.Delete(path);
+                    File.Delete(filePath);
                 }
 
-                // Create the file.
-                using (FileStream fs = File.Create(path))
+                using (FileStream fs = File.Create(filePath))
                 {
-                    Byte[] info = new UTF8Encoding(true).GetBytes(text);
-                    fs.Write(info, 0, info.Length);
+                    Byte[] title = new UTF8Encoding(true).GetBytes(newClass.NewClass);
+                    fs.Write(title, 0, title.Length);
                 }
 
-                using (StreamReader sr = File.OpenText(path))
-                {
-                    string s = "";
-                    while ((s = sr.ReadLine()) != null)
-                    {
-                        Console.WriteLine(s);
-                    }
-                }
+                
+                TFSAction(workspace => workspace.PendDelete(filePath), filePath);
             }
-            catch (Exception ex)
+            catch (Exception Ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(Ex.ToString());
             }
         }
+        public static void CheckoutFile(string filePath)
+        {
+            TFSAction((workspace) => workspace.PendEdit(filePath), filePath);
+        }
+        private static void TFSAction(Action<Workspace> action, string filePath)
+        {
+            var workspaceInfo = Workstation.Current.GetLocalWorkspaceInfo(filePath);
+            if (workspaceInfo == null)
+            {
+                Console.WriteLine("Failed to initialize workspace info");
+                return;
+            }
+            using (var server = new TfsTeamProjectCollection(workspaceInfo.ServerUri))
+            {
+                var workspace = workspaceInfo.GetWorkspace(server);
+                action(workspace);
+            }
+        }
+
     }
 }

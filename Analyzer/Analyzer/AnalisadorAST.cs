@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using Analyzer;
 using System.IO;
 using System.Text;
+using System.Reflection;
 
 namespace CodeAnalysisApp
 {
@@ -100,12 +101,12 @@ namespace CodeAnalysisApp
                             var NameHostMicroService = "";
                             if (rota[rota.Length-1] == "\"")
                             {
-                                pretendingMethod.MicroServiceRoute = rota[rota.Length-2];
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length-2].Replace("\"", "");
                                 NameHostMicroService = value.Replace(rota[rota.Length - 2]+ rota[rota.Length - 1], "");
                             }
                             else
                             {
-                                pretendingMethod.MicroServiceRoute = rota[rota.Length-1];
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length-1].Replace("\"", "");
                                 NameHostMicroService = value.Replace(rota[rota.Length - 1], "");
                             }
 
@@ -133,19 +134,19 @@ namespace CodeAnalysisApp
             }
 
             //  Cria a classe
-            var classDeclaration = SyntaxFactory.ClassDeclaration(pretendingClass.Name);
+            var interfaceDeclaration = SyntaxFactory.InterfaceDeclaration("I" + pretendingClass.Name + "Service");
 
             // Torna a classe pública
-            classDeclaration = classDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
+            interfaceDeclaration = interfaceDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
             // Adiciona a herânca MicroServiceBase a classe
-            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("MicroServiceBase")));
+            interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroServiceBase")));
 
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
             var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
             var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute));
-            classDeclaration = classDeclaration.AddAttributeLists(attributeList);
+            interfaceDeclaration = interfaceDeclaration.AddAttributeLists(attributeList);
 
 
             // Create a method
@@ -154,26 +155,24 @@ namespace CodeAnalysisApp
                 var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
                 var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
 
-                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);",pretendingClass.Name, method.Name, method.RequestType));
+                //var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);",pretendingClass.Name, method.Name, method.RequestType));
 
                 var methodDeclaration = SyntaxFactory
 
                     .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), method.Name)
                     .AddAttributeLists(attributeListMethod)
-                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.StaticKeyword))
-                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
                             .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<object, object>>"))
                             .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
-                    .WithBody(SyntaxFactory.Block(bodyMethod));
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 
 
                 // Add the field, the property and method to the class.
-                classDeclaration = classDeclaration.AddMembers(methodDeclaration);
+                interfaceDeclaration = interfaceDeclaration.AddMembers(methodDeclaration);
             }
 
             // Add the class to the namespace.
-            @namespace = @namespace.AddMembers(classDeclaration);
+            @namespace = @namespace.AddMembers(interfaceDeclaration);
 
             // Normalize and get code as string.
             var code = @namespace
@@ -183,8 +182,5 @@ namespace CodeAnalysisApp
             // Output new code to the console.
             return code;
         }
-
-
-        
     }
 }

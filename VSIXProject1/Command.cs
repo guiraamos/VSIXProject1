@@ -12,6 +12,9 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Build.Evaluation;
 using System.Text;
 using Analyzer;
+using Microsoft.TeamFoundation.VersionControl.Client;
+using Microsoft.TeamFoundation.Client;
+using System.Reflection;
 
 namespace VSIXProject1
 {
@@ -96,8 +99,8 @@ namespace VSIXProject1
         /// <param name="e">Event args.</param>
         private void MenuItemCallback(object sender, EventArgs e)
         {
-            string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
-            string title = "ItemContextCommand";
+            string message = "Refactoy concluido com sucesso !";
+            string title = "Refactory - Microserviço";
 
             IntPtr hierarchyPointer, selectionContainerPointer;
             Object selectedObject = null;
@@ -135,9 +138,10 @@ namespace VSIXProject1
 
             if (!Directory.Exists(Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service")))
             {
+                selectedProject.ProjectItems.AddFolder("Service");
+
                 projectEvalution.AddItem("Folder", 
                     Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service"));
-                projectEvalution.Save();
             }
 
 
@@ -145,43 +149,22 @@ namespace VSIXProject1
             {
                 var newClass = AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
 
-                CriarArquivo(newClass, selectedProject);
+                if(newClass != null)
+                    Arquivo.CriarArquivo(newClass, selectedProject, projectEvalution);
             }
 
-            projectEvalution.Save();
 
-            // Show a message box to prove we were here
-            //VsShellUtilities.ShowMessageBox(
-            //    this.ServiceProvider,
-            //    message,
-            //    projectPath,
-            //    OLEMSGICON.OLEMSGICON_INFO,
-            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            //Show a message box to prove we were here
+            VsShellUtilities.ShowMessageBox(
+                this.ServiceProvider,
+                message,
+                title,
+                OLEMSGICON.OLEMSGICON_INFO,
+                OLEMSGBUTTON.OLEMSGBUTTON_OK,
+                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
         }
 
-        private void CriarArquivo(PretendingClass newClass, EnvDTE.Project selectedProject)
-        {
-            string fileName = Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service", newClass.Name + ".cs");
-
-            try
-            {
-                if (File.Exists(fileName))
-                {
-                    File.Delete(fileName);
-                }
-
-                using (FileStream fs = File.Create(fileName))
-                {
-                    Byte[] title = new UTF8Encoding(true).GetBytes(newClass.NewClass);
-                    fs.Write(title, 0, title.Length);
-                }
-            }
-            catch (Exception Ex)
-            {
-                Console.WriteLine(Ex.ToString());
-            }
-        }
+        
 
         public static List<string> GetAllProjectFiles(ProjectItems projectItems, string extension)
         {
