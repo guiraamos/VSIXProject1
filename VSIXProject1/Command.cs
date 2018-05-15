@@ -149,8 +149,11 @@ namespace VSIXProject1
             {
                 var newClass = AnalisadorAST.Analisar(Arquivo.LerClasse(classe));
 
-                if(newClass != null)
-                    Arquivo.CriarArquivo(newClass, selectedProject, projectEvalution);
+                if (newClass != null)
+                {
+                    Arquivo.CriarArquivo(newClass.Interface, selectedProject, projectEvalution, "I" + newClass.Name + "Service" + ".cs");
+                    Arquivo.CriarArquivo(newClass.Classe, selectedProject, projectEvalution, newClass.Name + "Service" + ".cs");
+                }
             }
 
 

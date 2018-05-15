@@ -19,8 +19,8 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\install.ps1" target="tools\install.ps1" />
-    <file src="C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\uninstall.ps1" target="tools\uninstall.ps1" />
-    <file src="C:\Users\eliaslasmar\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.dll" target="analyzers\dotnet\cs\Analyzer.dll" />
+    <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\install.ps1" target="tools\install.ps1" />
+    <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\uninstall.ps1" target="tools\uninstall.ps1" />
+    <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.dll" target="analyzers\dotnet\cs\Analyzer.dll" />
   </files>
 </package>

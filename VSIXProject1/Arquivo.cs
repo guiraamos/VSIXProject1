@@ -14,9 +14,9 @@ namespace VSIXProject1
             return File.ReadAllText(path);
         }
 
-        public static void CriarArquivo(PretendingClass newClass, EnvDTE.Project selectedProject, Microsoft.Build.Evaluation.Project projectEvalution)
+        public static void CriarArquivo(string newClass, EnvDTE.Project selectedProject, Microsoft.Build.Evaluation.Project projectEvalution, string nameFile)
         {
-            string filePath = Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service", newClass.Name + "Service" + ".cs");
+            string filePath = Path.Combine(selectedProject.Properties.Item("FullPath").Value.ToString(), "Service", nameFile);
 
             try
             {
@@ -27,7 +27,7 @@ namespace VSIXProject1
 
                 using (FileStream fs = File.Create(filePath))
                 {
-                    Byte[] title = new UTF8Encoding(true).GetBytes(newClass.NewClass);
+                    Byte[] title = new UTF8Encoding(true).GetBytes(newClass);
                     fs.Write(title, 0, title.Length);
                 }
 

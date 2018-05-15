@@ -16,7 +16,7 @@ namespace CodeAnalysisApp
     public class AnalisadorAST
     {
         private static readonly string NameSpacetextService = "Service";
-        private static readonly string[] DependenciasService = { "System.Collections.Generic", "MicroServiceNet", "RestSharp" };
+        private static readonly string[] DependenciasService = { "System.Collections.Generic", "System.Composition", "MicroServiceNet", "RestSharp" };
 
         public static PretendingClass Analisar(string classeText)
         {
@@ -47,7 +47,9 @@ namespace CodeAnalysisApp
 
             if (pretendingClass.Methods.Count > 0)
             {
-                pretendingClass.NewClass = CreateClassService(pretendingClass);
+                pretendingClass.Interface = CreateInterfaceService(pretendingClass);
+                pretendingClass.Classe = CreateClassService(pretendingClass);
+
                 return pretendingClass;
             }
 
@@ -122,7 +124,7 @@ namespace CodeAnalysisApp
         }
 
 
-        static string CreateClassService(PretendingClass pretendingClass)
+        static string CreateInterfaceService(PretendingClass pretendingClass)
         {
             //Cria um namespace da classe (namespace CodeGenerationSample)
             var @namespace = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(NameSpacetextService)).NormalizeWhitespace();
@@ -140,7 +142,7 @@ namespace CodeAnalysisApp
             interfaceDeclaration = interfaceDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
             // Adiciona a herânca MicroServiceBase a classe
-            interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroServiceBase")));
+            //interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroServiceBase")));
 
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
@@ -182,5 +184,73 @@ namespace CodeAnalysisApp
             // Output new code to the console.
             return code;
         }
+
+
+        static string CreateClassService(PretendingClass pretendingClass)
+        {
+            //Cria um namespace da classe (namespace CodeGenerationSample)
+            var @namespace = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(NameSpacetextService)).NormalizeWhitespace();
+
+            // Add as dependencias da classe
+            foreach (string dependence in DependenciasService)
+            {
+                @namespace = @namespace.AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(dependence)));
+            }
+
+            //  Cria a classe
+            var classDeclaration = SyntaxFactory.ClassDeclaration(pretendingClass.Name);
+
+            // Torna a classe pública
+            classDeclaration = classDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
+
+            // Adiciona a herânca MicroServiceBase a classe
+            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("MicroServiceBase")));
+            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("I" + pretendingClass.Name + "Service")));
+
+
+            // Add a tag MicroServiceHost com o valor do HOST encontrado
+            var attribute1 = SyntaxFactory.Attribute(SyntaxFactory.ParseName("Export"), SyntaxFactory.ParseAttributeArgumentList($"(typeof(I{pretendingClass.Name}Service))"));
+            var attributeList1 = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute1));
+            classDeclaration = classDeclaration.AddAttributeLists(attributeList1);
+
+            var attribute2 = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
+            var attributeList2 = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute2));
+            classDeclaration = classDeclaration.AddAttributeLists(attributeList2);
+
+            // Create a method
+            foreach (var method in pretendingClass.Methods)
+            {
+                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
+                var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
+
+                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);", pretendingClass.Name, method.Name, method.RequestType));
+
+                var methodDeclaration = SyntaxFactory
+
+                    .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), method.Name)
+                    .AddAttributeLists(attributeListMethod)
+                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                    .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
+                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<object, object>>"))
+                            .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
+                    .WithBody(SyntaxFactory.Block(bodyMethod));
+
+
+                // Add the field, the property and method to the class.
+                classDeclaration = classDeclaration.AddMembers(methodDeclaration);
+            }
+
+            // Add the class to the namespace.
+            @namespace = @namespace.AddMembers(classDeclaration);
+
+            // Normalize and get code as string.
+            var code = @namespace
+                .NormalizeWhitespace()
+                .ToFullString();
+
+            // Output new code to the console.
+            return code;
+        }
+
     }
 }
