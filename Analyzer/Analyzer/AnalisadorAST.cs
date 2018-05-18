@@ -1,22 +1,17 @@
 ﻿using System;
-using System.Collections;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Analyzer;
-using System.IO;
-using System.Text;
-using System.Reflection;
 
 namespace CodeAnalysisApp
 {
     public class AnalisadorAST
     {
         private static readonly string NameSpacetextService = "Service";
-        private static readonly string[] DependenciasService = { "System.Collections.Generic", "System.Composition", "MicroServiceNet", "RestSharp" };
+        private static readonly string[] DependenciasService = { "System.Collections.Generic", "System.Composition", "System.Net.Http", "MicroServiceNet", "System.Threading.Tasks", "System.Web.Mvc"};
 
         public static PretendingClass Analisar(string classeText)
         {
@@ -72,10 +67,10 @@ namespace CodeAnalysisApp
                         if (declaracao.Initializer.Value.ToString().Contains(tipoRequisicao))
                         {
                             if (tipoRequisicao.Equals("GetAsync"))
-                                pretendingMethod.RequestType = "GET";
+                                pretendingMethod.RequestType = "Get";
 
                             if (tipoRequisicao.Equals("PostAsync"))
-                                pretendingMethod.RequestType = "POST";
+                                pretendingMethod.RequestType = "Post";
 
                             pretendingClass.Methods.Add(pretendingMethod);
                             TrataRotaMethodo(declaracao, pretendingClass, pretendingMethod);
@@ -141,9 +136,6 @@ namespace CodeAnalysisApp
             // Torna a classe pública
             interfaceDeclaration = interfaceDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
-            // Adiciona a herânca MicroServiceBase a classe
-            //interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroServiceBase")));
-
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
             var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
@@ -157,14 +149,12 @@ namespace CodeAnalysisApp
                 var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
                 var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
 
-                //var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);",pretendingClass.Name, method.Name, method.RequestType));
-
                 var methodDeclaration = SyntaxFactory
 
-                    .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), method.Name)
+                    .MethodDeclaration(SyntaxFactory.ParseTypeName("Task<HttpResponseMessage>"), method.Name)
                     .AddAttributeLists(attributeListMethod)
                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
-                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<object, object>>"))
+                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<string, string>>"))
                             .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 
@@ -223,7 +213,7 @@ namespace CodeAnalysisApp
                 var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
                 var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
 
-                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, Method.{2}, parameters);", pretendingClass.Name, method.Name, method.RequestType));
+                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, HttpVerbs.{2}, parameters);", pretendingClass.Name, method.Name, method.RequestType));
 
                 var methodDeclaration = SyntaxFactory
 
@@ -231,7 +221,7 @@ namespace CodeAnalysisApp
                     .AddAttributeLists(attributeListMethod)
                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
-                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<object, object>>"))
+                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<strin, string>>"))
                             .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
                     .WithBody(SyntaxFactory.Block(bodyMethod));
 
