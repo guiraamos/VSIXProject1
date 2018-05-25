@@ -151,8 +151,8 @@ namespace VSIXProject1
 
                 if (newClass != null)
                 {
-                    Arquivo.CriarArquivo(newClass.Interface, selectedProject, projectEvalution, "I" + newClass.Name + "Service" + ".cs");
-                    Arquivo.CriarArquivo(newClass.Classe, selectedProject, projectEvalution, newClass.Name + "Service" + ".cs");
+                    Arquivo.CriarArquivo(newClass.Interface, selectedProject, projectEvalution, "I" + newClass.Name + ".cs");
+                    Arquivo.CriarArquivo(newClass.Classe, selectedProject, projectEvalution, newClass.Name + ".cs");
                 }
             }
 

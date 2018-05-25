@@ -15,12 +15,12 @@
     <tags>Analyzer, analyzers</tags>
     <repository url="http://REPOSITORY_URL_HERE_OR_DELETE_THIS_LINE" />
     <dependencies>
-      <group targetFramework=".NETStandard1.3" />
+      <group targetFramework=".NETStandard2.0" />
     </dependencies>
   </metadata>
   <files>
     <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\install.ps1" target="tools\install.ps1" />
     <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\tools\uninstall.ps1" target="tools\uninstall.ps1" />
-    <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard1.3\Analyzer.dll" target="analyzers\dotnet\cs\Analyzer.dll" />
+    <file src="C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Analyzer.dll" target="analyzers\dotnet\cs\Analyzer.dll" />
   </files>
 </package>

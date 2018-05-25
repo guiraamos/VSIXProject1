@@ -1,0 +1,16 @@
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\tools\install.ps1
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\tools\uninstall.ps1
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Analyzer.deps.json
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Analyzer.dll
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Analyzer.pdb
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.Resources.resources
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.csproj.GenerateResource.cache
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.csproj.CoreCompileInputs.cache
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.AssemblyInfoInputs.cache
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.AssemblyInfo.cs
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.dll
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.pdb
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.csprojAssemblyReference.cache
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Newtonsoft.Json.dll
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\bin\Debug\netstandard2.0\Newtonsoft.Json.xml
+C:\Users\Guilherme\Documents\GitHub\VSIXProject1\Analyzer\Analyzer\obj\Debug\netstandard2.0\Analyzer.csproj.CopyComplete

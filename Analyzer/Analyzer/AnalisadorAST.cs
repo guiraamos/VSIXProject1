@@ -4,14 +4,23 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Runtime.Serialization;
+using System.Xml;
+using System.Xml.Serialization;
 using Analyzer;
+using Newtonsoft.Json;
+using System.Text;
+using System.Xml.Linq;
 
 namespace CodeAnalysisApp
 {
     public class AnalisadorAST
     {
         private static readonly string NameSpacetextService = "Service";
-        private static readonly string[] DependenciasService = { "System.Collections.Generic", "System.Composition", "System.Net.Http", "MicroServiceNet", "System.Threading.Tasks", "System.Web.Mvc"};
+        private static readonly string[] DependenciasClasseService = { "System.Collections.Generic", "System.Net.Http", "System.Threading.Tasks", "MicroServiceNet", "Microsoft.Extensions.Logging", "Pivotal.Discovery.Client" };
+        private static readonly string[] DependenciasInterfaceService = { "System.Collections.Generic", "System.Net.Http", "System.Threading.Tasks", "MicroServiceNet" };
 
         public static PretendingClass Analisar(string classeText)
         {
@@ -21,7 +30,7 @@ namespace CodeAnalysisApp
             var namespaceDeclaration = (NamespaceDeclarationSyntax)root.Members[0];
             var classe = (ClassDeclarationSyntax)namespaceDeclaration.Members[0];
 
-            var pretendingClass = new PretendingClass() { Name = classe.Identifier.ValueText };
+            var pretendingClass = new PretendingClass() { Name = Util.TrataNome(classe.Identifier.ValueText)+"Service" };
 
             foreach (var member in classe.Members)
             {
@@ -76,7 +85,6 @@ namespace CodeAnalysisApp
                             TrataRotaMethodo(declaracao, pretendingClass, pretendingMethod);
                         }
                     }
-
                 }
 
                 NavegaEntreNodosDoMetodo(nodo.ChildNodes(), pretendingClass, pretendingMethod);
@@ -125,39 +133,38 @@ namespace CodeAnalysisApp
             var @namespace = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(NameSpacetextService)).NormalizeWhitespace();
 
             // Add as dependencias da classe
-            foreach (string dependence in DependenciasService)
+            foreach (string dependence in DependenciasInterfaceService)
             {
                 @namespace = @namespace.AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(dependence)));
             }
 
             //  Cria a classe
-            var interfaceDeclaration = SyntaxFactory.InterfaceDeclaration("I" + pretendingClass.Name + "Service");
+            var interfaceDeclaration = SyntaxFactory.InterfaceDeclaration("I" + pretendingClass.Name);
 
             // Torna a classe pública
             interfaceDeclaration = interfaceDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
+            // Adiciona a herânca MicroServiceBase a classe
+            interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroService")));
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
-            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
+            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + Testar(pretendingClass.NameHostMicroService) + "\")"));
             var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute));
             interfaceDeclaration = interfaceDeclaration.AddAttributeLists(attributeList);
 
-
-            // Create a method
+            // Cria  assinatura
             foreach (var method in pretendingClass.Methods)
             {
-                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
+                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\", TypeRequest." + method.RequestType +")"));
                 var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
 
                 var methodDeclaration = SyntaxFactory
-
                     .MethodDeclaration(SyntaxFactory.ParseTypeName("Task<HttpResponseMessage>"), method.Name)
                     .AddAttributeLists(attributeListMethod)
                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
                             .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<string, string>>"))
                             .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-
 
                 // Add the field, the property and method to the class.
                 interfaceDeclaration = interfaceDeclaration.AddMembers(methodDeclaration);
@@ -175,6 +182,26 @@ namespace CodeAnalysisApp
             return code;
         }
 
+        private static string Testar(string URL)
+        {
+
+            var client = new HttpClient();
+
+            URL = "http://localhost:8761/eureka/vips/177.105.34.182:5003";
+
+            var responseContent = client.GetAsync(URL).Result.Content.ReadAsStringAsync().Result;
+
+            XmlDocument xDoc = new XmlDocument();
+            xDoc.LoadXml(responseContent);
+
+            string name = xDoc.GetElementsByTagName("name")[0].InnerText;
+
+            if (String.IsNullOrWhiteSpace(name))
+                return URL;
+
+            return name;
+        }
+
 
         static string CreateClassService(PretendingClass pretendingClass)
         {
@@ -182,7 +209,7 @@ namespace CodeAnalysisApp
             var @namespace = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(NameSpacetextService)).NormalizeWhitespace();
 
             // Add as dependencias da classe
-            foreach (string dependence in DependenciasService)
+            foreach (string dependence in DependenciasClasseService)
             {
                 @namespace = @namespace.AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(dependence)));
             }
@@ -194,34 +221,39 @@ namespace CodeAnalysisApp
             classDeclaration = classDeclaration.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
             // Adiciona a herânca MicroServiceBase a classe
-            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("MicroServiceBase")));
-            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("I" + pretendingClass.Name + "Service")));
+            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName(String.Format("MicroService<{0}>", pretendingClass.Name))));
+            classDeclaration = classDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("I" + pretendingClass.Name)));
+
+            //Cria Contrutor da Classe
+            ConstructorInitializerSyntax ciWithParseArgList = SyntaxFactory.ConstructorInitializer(
+                SyntaxKind.BaseConstructorInitializer,
+                SyntaxFactory.ParseArgumentList("(client, logFactory){}"));
+
+            var constructorDeclaration = SyntaxFactory
+                .ConstructorDeclaration(pretendingClass.Name)
+                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("client"))
+                    .WithType(SyntaxFactory.ParseTypeName("IDiscoveryClient")))
+                .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("logFactory"))
+                    .WithType(SyntaxFactory.ParseTypeName("ILoggerFactory")))
+                .WithInitializer(ciWithParseArgList);
 
 
-            // Add a tag MicroServiceHost com o valor do HOST encontrado
-            var attribute1 = SyntaxFactory.Attribute(SyntaxFactory.ParseName("Export"), SyntaxFactory.ParseAttributeArgumentList($"(typeof(I{pretendingClass.Name}Service))"));
-            var attributeList1 = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute1));
-            classDeclaration = classDeclaration.AddAttributeLists(attributeList1);
+            // Add the field, the property and method to the class.
+            classDeclaration = classDeclaration.AddMembers(constructorDeclaration);
 
-            var attribute2 = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + pretendingClass.NameHostMicroService + "\")"));
-            var attributeList2 = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute2));
-            classDeclaration = classDeclaration.AddAttributeLists(attributeList2);
 
-            // Create a method
+
             foreach (var method in pretendingClass.Methods)
             {
-                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\")"));
-                var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
-
-                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute<{0}>({1}, HttpVerbs.{2}, parameters);", pretendingClass.Name, method.Name, method.RequestType));
+                var bodyMethod = SyntaxFactory.ParseStatement(String.Format("return Execute({0}, parameters);", method.Name));
 
                 var methodDeclaration = SyntaxFactory
 
-                    .MethodDeclaration(SyntaxFactory.ParseTypeName("IRestResponse"), method.Name)
-                    .AddAttributeLists(attributeListMethod)
+                    .MethodDeclaration(SyntaxFactory.ParseTypeName("Task<HttpResponseMessage>"), method.Name)
                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("parameters"))
-                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<strin, string>>"))
+                            .WithType(SyntaxFactory.ParseTypeName("List<KeyValuePair<string, string>>"))
                             .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))))
                     .WithBody(SyntaxFactory.Block(bodyMethod));
 
