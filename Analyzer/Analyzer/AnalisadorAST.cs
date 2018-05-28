@@ -30,7 +30,7 @@ namespace CodeAnalysisApp
             var namespaceDeclaration = (NamespaceDeclarationSyntax)root.Members[0];
             var classe = (ClassDeclarationSyntax)namespaceDeclaration.Members[0];
 
-            var pretendingClass = new PretendingClass() { Name = Util.TrataNome(classe.Identifier.ValueText)+"Service" };
+            var pretendingClass = new PretendingClass() { Name = Util.TrataNome(classe.Identifier.ValueText) + "Service" };
 
             foreach (var member in classe.Members)
             {
@@ -100,18 +100,18 @@ namespace CodeAnalysisApp
                     foreach (ArgumentSyntax argument in item.ChildNodes())
                     {
                         var value = argument.Expression.ToString();
-                        if(value.Contains("http"))
+                        if (value.Contains("http"))
                         {
                             var rota = value.Split('/');
                             var NameHostMicroService = "";
-                            if (rota[rota.Length-1] == "\"")
+                            if (rota[rota.Length - 1] == "\"")
                             {
-                                pretendingMethod.MicroServiceRoute = rota[rota.Length-2].Replace("\"", "");
-                                NameHostMicroService = value.Replace(rota[rota.Length - 2]+ rota[rota.Length - 1], "");
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length - 2].Replace("\"", "");
+                                NameHostMicroService = value.Replace(rota[rota.Length - 2] + rota[rota.Length - 1], "");
                             }
                             else
                             {
-                                pretendingMethod.MicroServiceRoute = rota[rota.Length-1].Replace("\"", "");
+                                pretendingMethod.MicroServiceRoute = rota[rota.Length - 1].Replace("\"", "");
                                 NameHostMicroService = value.Replace(rota[rota.Length - 1], "");
                             }
 
@@ -148,14 +148,14 @@ namespace CodeAnalysisApp
             interfaceDeclaration = interfaceDeclaration.AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("IMicroService")));
 
             // Add a tag MicroServiceHost com o valor do HOST encontrado
-            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + Testar(pretendingClass.NameHostMicroService) + "\")"));
+            var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroServiceHost"), SyntaxFactory.ParseAttributeArgumentList("(\"" + BuscarMicroServico(pretendingClass.NameHostMicroService) + "\")"));
             var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attribute));
             interfaceDeclaration = interfaceDeclaration.AddAttributeLists(attributeList);
 
             // Cria  assinatura
             foreach (var method in pretendingClass.Methods)
             {
-                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\", TypeRequest." + method.RequestType +")"));
+                var attributeMethod = SyntaxFactory.Attribute(SyntaxFactory.ParseName("MicroService"), SyntaxFactory.ParseAttributeArgumentList("(\"" + method.MicroServiceRoute + "\", TypeRequest." + method.RequestType + ")"));
                 var attributeListMethod = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList<AttributeSyntax>().Add(attributeMethod));
 
                 var methodDeclaration = SyntaxFactory
@@ -182,24 +182,36 @@ namespace CodeAnalysisApp
             return code;
         }
 
-        private static string Testar(string URL)
+        private static string BuscarMicroServico(string URL)
         {
+
+            var arrayURL = URL.Split('/')
+                         .Select(x => x.Trim())
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
+                         .ToArray();
 
             var client = new HttpClient();
 
-            URL = "http://localhost:8761/eureka/vips/177.105.34.182:5003";
+            try
+            {
+                var responseContent = client.GetAsync("http://localhost:8761/eureka/vips/" + arrayURL[1]).Result.Content.ReadAsStringAsync().Result;
 
-            var responseContent = client.GetAsync(URL).Result.Content.ReadAsStringAsync().Result;
+                XmlDocument xDoc = new XmlDocument();
+                xDoc.LoadXml(responseContent);
 
-            XmlDocument xDoc = new XmlDocument();
-            xDoc.LoadXml(responseContent);
+                string name = xDoc.GetElementsByTagName("name")[0].InnerText;
 
-            string name = xDoc.GetElementsByTagName("name")[0].InnerText;
+                if (String.IsNullOrWhiteSpace(name))
+                    return URL;
 
-            if (String.IsNullOrWhiteSpace(name))
+                return name;
+            }
+            catch (Exception)
+            {
                 return URL;
+            }
 
-            return name;
+
         }
 
 
